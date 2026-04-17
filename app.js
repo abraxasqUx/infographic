@@ -356,8 +356,21 @@ function renderNotes(notes) {
 }
 
 // =============================================
-// Notes — 저장 (로컬 + 시트 안내)
+// Notes — Google Apps Script로 시트에 저장
 // =============================================
+
+// ⚙️ Apps Script 웹앱 URL
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw_cq_NsyTMWHUJRAmAT3e3dqhTBpkSUxTvsiNWmYbfxWgvRqvOiwP2DvomgOf8EfOn6Q/exec';
+
+async function saveNoteToSheet(note) {
+  await fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(note),
+  });
+}
+
 function setupNoteForm() {
   const addBtn    = document.getElementById('addNoteBtn');
   const form      = document.getElementById('noteForm');
@@ -375,21 +388,34 @@ function setupNoteForm() {
     document.getElementById('noteContent').value = '';
   });
 
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener('click', async () => {
     const title   = document.getElementById('noteTitle').value.trim();
     const content = document.getElementById('noteContent').value.trim();
 
     if (!title) { showToast('제목을 입력해주세요', 'error'); return; }
 
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+
     const newNote = { date: today(), title, content };
-    state.notes.unshift(newNote);
-    renderNotes(state.notes);
 
-    form.style.display = 'none';
-    document.getElementById('noteTitle').value   = '';
-    document.getElementById('noteContent').value = '';
+    try {
+      await saveNoteToSheet(newNote);
+      state.notes.unshift(newNote);
+      renderNotes(state.notes);
 
-    showToast('노트가 저장되었습니다 ✓ (구글 시트에도 추가해주세요)', 'success');
+      form.style.display = 'none';
+      document.getElementById('noteTitle').value   = '';
+      document.getElementById('noteContent').value = '';
+
+      showToast('노트가 구글 시트에 저장됐어요 ✓', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('저장 실패: ' + err.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '저장';
+    }
   });
 }
 
