@@ -363,11 +363,15 @@ function renderNotes(notes) {
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw_cq_NsyTMWHUJRAmAT3e3dqhTBpkSUxTvsiNWmYbfxWgvRqvOiwP2DvomgOf8EfOn6Q/exec';
 
 async function saveNoteToSheet(note) {
-  await fetch(GAS_URL, {
-    method: 'POST',
+  // GET 방식 사용 — no-cors 환경에서 가장 안정적
+  const params = new URLSearchParams({
+    date:    note.date,
+    title:   note.title,
+    content: note.content,
+  });
+  await fetch(`${GAS_URL}?${params.toString()}`, {
+    method: 'GET',
     mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(note),
   });
 }
 
