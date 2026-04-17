@@ -5,7 +5,7 @@
  *    URL 예시: https://docs.google.com/spreadsheets/d/[여기가_ID]/edit
  */
 
-const SHEET_ID = '1QUt1d1wneqkFloCrM0DAW24M90sRnPRfqaP5Ae_Qtnk'; // ← 여기에 시트 ID 입력
+const SHEET_ID = '1QUt1d1wneqkFloCrM0DAW24M90sRnPRfqaP5Ae_Qtnk'; // ← 여기에 시트 ID 
 
 const SHEET_NAMES = {
   holdings: 'Holdings',
