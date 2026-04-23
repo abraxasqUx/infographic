@@ -516,6 +516,175 @@ function setupEventListeners() {
     state.currentCategoryFilter = btn.dataset.cat;
     renderHoldingsTable(calcHoldings(state.holdings), state.currentCategoryFilter);
   });
+
+  // GNB 페이지 전환
+  document.querySelectorAll('.gnb-item').forEach(item => {
+    item.addEventListener('click', e => {
+      e.preventDefault();
+      const page = item.dataset.page;
+      document.querySelectorAll('.gnb-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+      document.getElementById(`page-${page}`).style.display = '';
+    });
+  });
+}
+
+// =============================================
+// ETF 분석 페이지
+// =============================================
+let etfBarChart = null;
+
+function setupETFPage() {
+  const submitBtn = document.getElementById('etfSubmitBtn');
+  const tickerInput = document.getElementById('etfTickerInput');
+
+  submitBtn.addEventListener('click', () => runETFAnalysis());
+  tickerInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') runETFAnalysis();
+  });
+}
+
+async function runETFAnalysis() {
+  const name   = document.getElementById('etfNameInput').value.trim();
+  const ticker = document.getElementById('etfTickerInput').value.trim().toUpperCase();
+
+  if (!ticker) { showToast('티커를 입력해주세요', 'error'); return; }
+
+  const submitBtn = document.getElementById('etfSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '분석 중...';
+
+  document.getElementById('etfResults').style.display = 'none';
+  document.getElementById('etfLoading').style.display  = 'flex';
+
+  try {
+    const holdings = await fetchETFHoldings(name || ticker, ticker);
+    renderETFResults(name || ticker, ticker, holdings);
+  } catch (err) {
+    console.error(err);
+    showToast('데이터 로드 실패: ' + err.message, 'error');
+  } finally {
+    document.getElementById('etfLoading').style.display = 'none';
+    submitBtn.disabled    = false;
+    submitBtn.textContent = '분석하기';
+  }
+}
+
+async function fetchETFHoldings(name, ticker) {
+  // 1. GAS에 기록 요청 (no-cors, 시트 저장용)
+  const params = new URLSearchParams({ action: 'etf', name, ticker });
+  fetch(`${GAS_URL}?${params}`, { method: 'GET', mode: 'no-cors' }).catch(() => {});
+
+  // 2. Yahoo Finance quoteSummary 직접 호출 (CORS 프록시 경유)
+  const apiUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=topHoldings`;
+  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
+
+  const res = await fetch(proxyUrl);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const json = await res.json();
+  const result = json?.quoteSummary?.result?.[0]?.topHoldings?.holdings;
+  if (!result || !result.length) throw new Error('구성종목 데이터를 찾을 수 없습니다. 티커를 확인해주세요.');
+
+  return result.map(h => ({
+    name:   h.holdingName  || h.symbol || '—',
+    ticker: h.symbol       || '—',
+    weight: +(( (h.holdingPercent || 0) * 100 ).toFixed(2)),
+  }));
+}
+
+function renderETFResults(name, ticker, holdings) {
+  // 비중 높은 순 정렬, TOP 20
+  const sorted = [...holdings].sort((a, b) => b.weight - a.weight).slice(0, 20);
+  const maxWeight = sorted[0]?.weight || 1;
+
+  // 정보 바
+  document.getElementById('etfInfoName').textContent   = name;
+  document.getElementById('etfInfoTicker').textContent = ticker;
+  document.getElementById('etfInfoCount').textContent  = `구성종목 ${holdings.length}개`;
+
+  // 가로 막대 차트
+  if (etfBarChart) etfBarChart.destroy();
+  const ctx = document.getElementById('etfBarChart').getContext('2d');
+
+  const chartLabels = sorted.map(h => h.name.length > 25 ? h.name.slice(0, 24) + '…' : h.name);
+
+  etfBarChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        data: sorted.map(h => h.weight),
+        backgroundColor: sorted.map((_, i) =>
+          `rgba(124,110,242,${1 - i * 0.035})`
+        ),
+        borderRadius: 4,
+        borderSkipped: false,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.raw.toFixed(2)}%`,
+          },
+          backgroundColor: '#16161f',
+          borderColor: 'rgba(255,255,255,0.07)',
+          borderWidth: 1,
+          titleColor: '#f0f0f5',
+          bodyColor: '#8888a0',
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#44445a',
+            callback: v => v + '%',
+            font: { family: 'DM Mono', size: 11 },
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+        },
+        y: {
+          ticks: {
+            color: '#8888a0',
+            font: { family: 'Noto Sans KR', size: 12 },
+          },
+          grid: { display: false },
+        },
+      },
+    },
+  });
+
+  // 차트 높이를 데이터 수에 맞게 동적 설정
+  document.getElementById('etfBarChart').parentElement.style.height = `${sorted.length * 36 + 40}px`;
+
+  // 테이블
+  const tbody = document.getElementById('etfHoldingsBody');
+  tbody.innerHTML = sorted.map((h, i) => {
+    const barPct = Math.min((h.weight / maxWeight) * 100, 100).toFixed(1);
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${h.name}</td>
+        <td>${h.ticker}</td>
+        <td style="text-align:right; font-family:var(--font-mono)">${h.weight.toFixed(2)}%</td>
+        <td>
+          <div class="etf-weight-bar">
+            <div class="etf-weight-bg">
+              <div class="etf-weight-fill" style="width:${barPct}%"></div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('etfResults').style.display = '';
 }
 
 // =============================================
@@ -526,6 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLockScreen();
   setupEventListeners();
   setupNoteForm();
+  setupETFPage();
   loadData();
 });
 

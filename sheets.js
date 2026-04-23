@@ -111,3 +111,23 @@ async function loadAllData() {
   ]);
   return { holdings, notes, summary };
 }
+
+/**
+ * ETF_Holdings 시트에서 특정 ETF 구성종목 로드 (GAS 기록 후 폴백용)
+ * 기대 컬럼: etf_ticker, name, ticker, weight
+ */
+async function loadETFHoldingsFromSheet(etfTicker) {
+  try {
+    const rows = await fetchSheet('ETF_Holdings');
+    return rows
+      .filter(r => String(r.etf_ticker || '').toUpperCase() === etfTicker.toUpperCase())
+      .map(r => ({
+        name:   String(r.name   || '').trim(),
+        ticker: String(r.ticker || '').trim(),
+        weight: parseFloat(r.weight) || 0,
+      }))
+      .filter(r => r.name);
+  } catch {
+    return [];
+  }
+}

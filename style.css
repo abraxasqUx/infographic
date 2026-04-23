@@ -914,3 +914,171 @@ body::before {
 
 /* 예수금 카테고리 태그 */
 .cat-tag--예수금 { background: rgba(245,197,66,0.15); color: #f5c542; }
+
+/* =============================================
+   ETF 분석 페이지
+   ============================================= */
+.etf-form {
+  padding: 20px 24px 24px;
+}
+
+.etf-form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.etf-input {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.etf-input:focus { border-color: var(--accent); }
+
+.etf-input--ticker {
+  flex: 0 0 160px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.btn-etf-submit {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-etf-submit:hover { opacity: 0.85; }
+.btn-etf-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 로딩 */
+.etf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 80px 0;
+}
+
+.etf-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.etf-loading-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ETF 정보 바 */
+.etf-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.etf-info-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.etf-info-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.etf-info-ticker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.etf-info-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 차트 영역 */
+.etf-chart-wrap {
+  padding: 24px;
+  position: relative;
+}
+
+/* 테이블 — 순위·티커 열 왼쪽 정렬 */
+#etfHoldingsBody td:first-child {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: left;
+  width: 40px;
+}
+
+#etfHoldingsBody td:nth-child(2) {
+  font-family: var(--font-body);
+  text-align: left;
+}
+
+#etfHoldingsBody td:nth-child(3) {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+/* 비중 미니 바 */
+.etf-weight-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.etf-weight-bg {
+  width: 80px;
+  height: 4px;
+  background: var(--bg-base);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.etf-weight-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+@media (max-width: 640px) {
+  .etf-form-row { flex-wrap: wrap; }
+  .etf-input--ticker { flex: 0 0 100%; }
+}
