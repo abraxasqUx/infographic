@@ -572,26 +572,17 @@ async function runETFAnalysis() {
 }
 
 async function fetchETFHoldings(name, ticker) {
-  // 1. GAS에 기록 요청 (no-cors, 시트 저장용)
+  // GAS가 Yahoo Finance를 서버 사이드로 호출하고 결과를 JSON으로 반환
   const params = new URLSearchParams({ action: 'etf', name, ticker });
-  fetch(`${GAS_URL}?${params}`, { method: 'GET', mode: 'no-cors' }).catch(() => {});
-
-  // 2. Yahoo Finance quoteSummary 직접 호출 (CORS 프록시 경유)
-  const apiUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=topHoldings`;
-  const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
-
-  const res = await fetch(proxyUrl);
+  const res = await fetch(`${GAS_URL}?${params}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const json = await res.json();
-  const result = json?.quoteSummary?.result?.[0]?.topHoldings?.holdings;
-  if (!result || !result.length) throw new Error('구성종목 데이터를 찾을 수 없습니다. 티커를 확인해주세요.');
+  if (json.status === 'error') throw new Error(json.message);
+  if (!json.holdings || !json.holdings.length)
+    throw new Error('구성종목 데이터를 찾을 수 없습니다. 티커를 확인해주세요.');
 
-  return result.map(h => ({
-    name:   h.holdingName  || h.symbol || '—',
-    ticker: h.symbol       || '—',
-    weight: +(( (h.holdingPercent || 0) * 100 ).toFixed(2)),
-  }));
+  return json.holdings;
 }
 
 function renderETFResults(name, ticker, holdings) {

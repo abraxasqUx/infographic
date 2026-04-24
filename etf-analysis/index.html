@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ETF 분석 — FOLIO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mark">▲</span>
+        <span class="logo-text">FOLIO</span>
+      </div>
+      <a class="back-link" href="../index.html">← 포트폴리오</a>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <section class="panel">
+      <div class="panel-header">
+        <span class="panel-title">ETF 분석</span>
+      </div>
+      <div class="etf-form">
+        <div class="etf-form-row">
+          <input type="text" id="etfNameInput" class="etf-input" placeholder="종목명  (예: SPDR S&P 500 ETF Trust)" />
+          <input type="text" id="etfTickerInput" class="etf-input etf-input--ticker" placeholder="티커  (예: SPY)" />
+          <button class="btn-etf-submit" id="etfSubmitBtn">분석하기</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="etf-loading" id="etfLoading" style="display:none">
+      <div class="etf-spinner"></div>
+      <p class="etf-loading-text">구성종목 데이터를 불러오는 중...</p>
+    </div>
+
+    <div id="etfResults" style="display:none">
+
+      <section class="panel">
+        <div class="etf-info-bar">
+          <div class="etf-info-left">
+            <span class="etf-info-name" id="etfInfoName">—</span>
+            <span class="etf-info-ticker" id="etfInfoTicker">—</span>
+          </div>
+          <span class="etf-info-count" id="etfInfoCount">—</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">구성종목 비중 TOP 20</span>
+        </div>
+        <div class="etf-chart-wrap">
+          <canvas id="etfBarChart"></canvas>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">구성종목 상세</span>
+        </div>
+        <div class="table-wrap">
+          <table class="holdings-table">
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>종목명</th>
+                <th>티커</th>
+                <th>비중</th>
+                <th>비중 그래프</th>
+              </tr>
+            </thead>
+            <tbody id="etfHoldingsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
