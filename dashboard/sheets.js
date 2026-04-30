@@ -49,13 +49,14 @@ function parseGvizTable(table) {
 
 /**
  * Holdings 시트 데이터 로드 및 정규화
- * 기대 컬럼: ticker, name, category, quantity, avg_price, current_price, currency
+ * 기대 컬럼: account, ticker, name, category, quantity, avg_price, current_price, currency
  * category 값: 국내주식 | 해외주식 | 예수금
  * 예수금 행: quantity=1, avg_price=금액, current_price=금액 으로 입력
  */
 async function loadHoldings() {
   const rows = await fetchSheet(SHEET_NAMES.holdings);
   return rows.map(r => ({
+    account:       String(r.account || '').trim() || '기타',
     ticker:        String(r.ticker || '').trim(),
     name:          String(r.name || '').trim(),
     category:      String(r.category || '').trim(),
@@ -68,13 +69,14 @@ async function loadHoldings() {
 
 /**
  * Notes 시트 데이터 로드
- * 기대 컬럼: date, title, content
+ * 기대 컬럼: date, ticker, title, content
  */
 async function loadNotes() {
   const rows = await fetchSheet(SHEET_NAMES.notes);
   return rows
     .map(r => ({
       date:    String(r.date || '').trim(),
+      ticker:  String(r.ticker || '').trim(),
       title:   String(r.title || '').trim(),
       content: String(r.content || '').trim(),
     }))

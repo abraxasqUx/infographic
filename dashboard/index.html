@@ -69,19 +69,7 @@
     </div>
   </header>
 
-  <!-- GNB -->
-  <nav class="gnb">
-    <div class="gnb-inner">
-      <a class="gnb-item active" data-page="dashboard" href="#">대시보드</a>
-      <a class="gnb-item" data-page="etf" href="#">ETF분석</a>
-      <a class="gnb-item" data-page="compare" href="#">종목간 비교</a>
-    </div>
-  </nav>
-
   <main class="main">
-
-    <!-- ===== 대시보드 페이지 ===== -->
-    <div id="page-dashboard" class="page">
 
       <!-- Summary Cards -->
       <section class="summary-grid">
@@ -132,17 +120,23 @@
       <section class="panel">
         <div class="panel-header">
           <span class="panel-title">보유 종목</span>
-          <div class="toggle-group" id="categoryFilter">
-            <button class="toggle-btn active" data-cat="전체">전체</button>
-            <button class="toggle-btn" data-cat="국내주식">국내</button>
-            <button class="toggle-btn" data-cat="해외주식">해외</button>
-            <button class="toggle-btn" data-cat="예수금">예수금</button>
+          <div class="panel-filters">
+            <select class="filter-select" id="accountFilter">
+              <option value="전체">전체 계좌</option>
+            </select>
+            <div class="toggle-group" id="categoryFilter">
+              <button class="toggle-btn active" data-cat="전체">전체</button>
+              <button class="toggle-btn" data-cat="국내주식">국내</button>
+              <button class="toggle-btn" data-cat="해외주식">해외</button>
+              <button class="toggle-btn" data-cat="예수금">예수금</button>
+            </div>
           </div>
         </div>
         <div class="table-wrap">
           <table class="holdings-table">
             <thead>
               <tr>
+                <th>계좌별</th>
                 <th>종목명</th>
                 <th>구분</th>
                 <th>수량</th>
@@ -163,10 +157,18 @@
       <section class="panel">
         <div class="panel-header">
           <span class="panel-title">투자 노트</span>
-          <button class="add-note-btn" id="addNoteBtn">+ 노트 추가</button>
+          <div class="panel-filters">
+            <select class="filter-select" id="noteFilter">
+              <option value="전체">전체</option>
+            </select>
+            <button class="add-note-btn" id="addNoteBtn">+ 노트 추가</button>
+          </div>
         </div>
         <div class="note-form" id="noteForm" style="display:none;">
           <div class="note-form-inner">
+            <select class="note-input note-select" id="noteTicker">
+              <option value="">종목 선택 (선택 안 하면 전체 메모)</option>
+            </select>
             <input class="note-input" type="text" id="noteTitle" placeholder="제목" />
             <textarea class="note-input note-textarea" id="noteContent" placeholder="내용을 입력하세요..."></textarea>
             <div class="note-form-actions">
@@ -177,91 +179,6 @@
         </div>
         <div class="notes-list" id="notesList"></div>
       </section>
-
-    </div>
-
-    <!-- ===== ETF 분석 페이지 ===== -->
-    <div id="page-etf" class="page" style="display:none">
-
-      <!-- 입력 폼 -->
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-title">ETF 분석</span>
-        </div>
-        <div class="etf-form">
-          <div class="etf-form-row">
-            <input type="text" id="etfNameInput" class="etf-input" placeholder="종목명  (예: SPDR S&P 500 ETF Trust)" />
-            <input type="text" id="etfTickerInput" class="etf-input etf-input--ticker" placeholder="티커  (예: SPY)" />
-            <button class="btn-etf-submit" id="etfSubmitBtn">분석하기</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- 로딩 -->
-      <div class="etf-loading" id="etfLoading" style="display:none">
-        <div class="etf-spinner"></div>
-        <p class="etf-loading-text">구성종목 데이터를 불러오는 중...</p>
-      </div>
-
-      <!-- 결과 영역 -->
-      <div id="etfResults" style="display:none">
-
-        <!-- ETF 정보 바 -->
-        <section class="panel">
-          <div class="etf-info-bar">
-            <div class="etf-info-left">
-              <span class="etf-info-name" id="etfInfoName">—</span>
-              <span class="etf-info-ticker" id="etfInfoTicker">—</span>
-            </div>
-            <span class="etf-info-count" id="etfInfoCount">—</span>
-          </div>
-        </section>
-
-        <!-- 가로 막대 차트 -->
-        <section class="panel">
-          <div class="panel-header">
-            <span class="panel-title">구성종목 비중 TOP 20</span>
-          </div>
-          <div class="etf-chart-wrap">
-            <canvas id="etfBarChart"></canvas>
-          </div>
-        </section>
-
-        <!-- 구성종목 테이블 -->
-        <section class="panel">
-          <div class="panel-header">
-            <span class="panel-title">구성종목 상세</span>
-          </div>
-          <div class="table-wrap">
-            <table class="holdings-table">
-              <thead>
-                <tr>
-                  <th>순위</th>
-                  <th>종목명</th>
-                  <th>티커</th>
-                  <th>비중</th>
-                  <th>비중 그래프</th>
-                </tr>
-              </thead>
-              <tbody id="etfHoldingsBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-      </div>
-    </div>
-
-    <!-- ===== 종목간 비교 페이지 ===== -->
-    <div id="page-compare" class="page" style="display:none">
-      <section class="panel">
-        <div class="panel-header">
-          <span class="panel-title">종목간 비교</span>
-        </div>
-        <div style="padding:80px 24px; text-align:center; color:var(--text-muted); font-size:13px;">
-          준비 중입니다
-        </div>
-      </section>
-    </div>
 
   </main>
 

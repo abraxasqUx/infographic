@@ -8,20 +8,20 @@
 // =============================================
 const DUMMY_DATA = {
   holdings: [
-    { ticker: '005930', name: '삼성전자',     category: '국내주식', quantity: 50,  avg_price: 68000,  current_price: 74500,  currency: 'KRW' },
-    { ticker: '000660', name: 'SK하이닉스',   category: '국내주식', quantity: 20,  avg_price: 142000, current_price: 178000, currency: 'KRW' },
-    { ticker: '035420', name: 'NAVER',        category: '국내주식', quantity: 10,  avg_price: 210000, current_price: 195000, currency: 'KRW' },
-    { ticker: 'AAPL',   name: 'Apple',        category: '해외주식', quantity: 15,  avg_price: 170,    current_price: 213,    currency: 'USD' },
-    { ticker: 'NVDA',   name: 'NVIDIA',       category: '해외주식', quantity: 10,  avg_price: 480,    current_price: 875,    currency: 'USD' },
-    { ticker: 'MSFT',   name: 'Microsoft',    category: '해외주식', quantity: 8,   avg_price: 360,    current_price: 415,    currency: 'USD' },
-    { ticker: '069500', name: 'KODEX 200',    category: '국내주식', quantity: 100, avg_price: 32000,  current_price: 34800,  currency: 'KRW' },
-    { ticker: 'SPY',    name: 'SPDR S&P 500', category: '해외주식', quantity: 5,   avg_price: 450,    current_price: 520,    currency: 'USD' },
-    { ticker: '-',      name: '예수금',        category: '예수금',   quantity: 1,   avg_price: 3500000, current_price: 3500000, currency: 'KRW' },
+    { ticker: '005930', name: '삼성전자',     category: '국내주식', account: '키움증권',  quantity: 50,  avg_price: 68000,  current_price: 74500,  currency: 'KRW' },
+    { ticker: '000660', name: 'SK하이닉스',   category: '국내주식', account: '키움증권',  quantity: 20,  avg_price: 142000, current_price: 178000, currency: 'KRW' },
+    { ticker: '035420', name: 'NAVER',        category: '국내주식', account: '삼성증권',  quantity: 10,  avg_price: 210000, current_price: 195000, currency: 'KRW' },
+    { ticker: 'AAPL',   name: 'Apple',        category: '해외주식', account: '미래에셋',  quantity: 15,  avg_price: 170,    current_price: 213,    currency: 'USD' },
+    { ticker: 'NVDA',   name: 'NVIDIA',       category: '해외주식', account: '미래에셋',  quantity: 10,  avg_price: 480,    current_price: 875,    currency: 'USD' },
+    { ticker: 'MSFT',   name: 'Microsoft',    category: '해외주식', account: '삼성증권',  quantity: 8,   avg_price: 360,    current_price: 415,    currency: 'USD' },
+    { ticker: '069500', name: 'KODEX 200',    category: '국내주식', account: '삼성증권',  quantity: 100, avg_price: 32000,  current_price: 34800,  currency: 'KRW' },
+    { ticker: 'SPY',    name: 'SPDR S&P 500', category: '해외주식', account: '미래에셋',  quantity: 5,   avg_price: 450,    current_price: 520,    currency: 'USD' },
+    { ticker: '-',      name: '예수금',        category: '예수금',   account: '키움증권',  quantity: 1,   avg_price: 3500000, current_price: 3500000, currency: 'KRW' },
   ],
   notes: [
-    { date: '2025-04-10', title: 'NVIDIA 추가 매수 검토', content: 'AI 인프라 수요 지속으로 하반기 실적 기대.\n현 가격대에서 분할 매수 고려 중.' },
-    { date: '2025-03-25', title: '1분기 포트폴리오 리밸런싱', content: '국내주식 비중이 높아짐.\n해외 ETF 비중 늘리는 방향으로 조정 예정.' },
-    { date: '2025-03-01', title: 'NAVER 편입', content: 'AI 커머스, 광고 반등 기대.\n목표가 240,000원.' },
+    { date: '2025-04-10', ticker: 'NVDA',   title: 'NVIDIA 추가 매수 검토', content: 'AI 인프라 수요 지속으로 하반기 실적 기대.\n현 가격대에서 분할 매수 고려 중.' },
+    { date: '2025-03-25', ticker: '',       title: '1분기 포트폴리오 리밸런싱', content: '국내주식 비중이 높아짐.\n해외 ETF 비중 늘리는 방향으로 조정 예정.' },
+    { date: '2025-03-01', ticker: '035420', title: 'NAVER 편입', content: 'AI 커머스, 광고 반등 기대.\n목표가 240,000원.' },
   ],
   summary: null,
 };
@@ -38,6 +38,8 @@ let state = {
   pieChart: null,
   currentPieType: 'category',  // 'category' | 'ticker'
   currentCategoryFilter: '전체',
+  currentAccountFilter: '전체',
+  currentNoteFilter: '전체',
 };
 
 // =============================================
@@ -272,23 +274,29 @@ function renderCategoryBreakdown(computed) {
 // =============================================
 // Holdings Table
 // =============================================
-function renderHoldingsTable(computed, filter = '전체') {
+function renderHoldingsTable(computed, categoryFilter = '전체', accountFilter = '전체') {
   const totalValue = computed.reduce((s, h) => s + h.valueKRW, 0);
-  const filtered   = filter === '전체' ? computed : computed.filter(h => h.category === filter);
+  const filtered = computed.filter(h => {
+    const catOk = categoryFilter === '전체' || h.category === categoryFilter;
+    const accOk = accountFilter === '전체' || h.account === accountFilter;
+    return catOk && accOk;
+  });
 
   const tbody = document.getElementById('holdingsBody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">데이터 없음</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted)">데이터 없음</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(h => {
     const weight = totalValue > 0 ? (h.valueKRW / totalValue) * 100 : 0;
     const priceUnit = h.currency === 'USD' ? '$' : '₩';
+    const accountCell = `<td><span class="account-tag">${h.account || '—'}</span></td>`;
 
     if (h.isCash) {
       return `
         <tr>
+          ${accountCell}
           <td>
             <span class="ticker-name">${h.name}</span>
             <span class="ticker-code">KRW</span>
@@ -313,6 +321,7 @@ function renderHoldingsTable(computed, filter = '전체') {
 
     return `
       <tr>
+        ${accountCell}
         <td>
           <span class="ticker-name">${h.name}</span>
           <span class="ticker-code">${h.ticker}</span>
@@ -336,23 +345,62 @@ function renderHoldingsTable(computed, filter = '전체') {
   }).join('');
 }
 
+function populateAccountFilter(holdings) {
+  const select = document.getElementById('accountFilter');
+  const accounts = [...new Set(holdings.map(h => h.account).filter(Boolean))].sort();
+  const current  = state.currentAccountFilter;
+  const options  = ['<option value="전체">전체 계좌</option>']
+    .concat(accounts.map(a => `<option value="${a}">${a}</option>`));
+  select.innerHTML = options.join('');
+  select.value = accounts.includes(current) || current === '전체' ? current : '전체';
+  state.currentAccountFilter = select.value;
+}
+
 // =============================================
 // Notes
 // =============================================
-function renderNotes(notes) {
+function tickerLabel(ticker) {
+  if (!ticker) return '';
+  const h = state.holdings.find(x => x.ticker === ticker);
+  return h ? `${h.name} (${h.ticker})` : ticker;
+}
+
+function renderNotes(notes, filter = '전체') {
   const el = document.getElementById('notesList');
-  if (!notes.length) {
-    el.innerHTML = `<div class="notes-empty">아직 작성한 노트가 없어요</div>`;
+  const filtered = filter === '전체' ? notes : notes.filter(n => n.ticker === filter);
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="notes-empty">${filter === '전체' ? '아직 작성한 노트가 없어요' : '해당 종목의 노트가 없어요'}</div>`;
     return;
   }
-  el.innerHTML = notes.map(n => `
+  el.innerHTML = filtered.map(n => `
     <div class="note-card">
       <div class="note-card-header">
         <span class="note-card-title">${n.title}</span>
         <span class="note-card-date">${n.date}</span>
       </div>
+      ${n.ticker ? `<div class="note-card-meta"><span class="note-card-ticker">${tickerLabel(n.ticker)}</span></div>` : ''}
       <div class="note-card-content">${n.content}</div>
     </div>`).join('');
+}
+
+function populateNoteFilter(notes) {
+  const select  = document.getElementById('noteFilter');
+  const tickers = [...new Set(notes.map(n => n.ticker).filter(Boolean))].sort();
+  const current = state.currentNoteFilter;
+  const options = ['<option value="전체">전체</option>']
+    .concat(tickers.map(t => `<option value="${t}">${tickerLabel(t)}</option>`));
+  select.innerHTML = options.join('');
+  select.value = tickers.includes(current) || current === '전체' ? current : '전체';
+  state.currentNoteFilter = select.value;
+}
+
+function populateNoteTickerSelect(holdings) {
+  const select = document.getElementById('noteTicker');
+  const stocks = holdings.filter(h => h.category !== '예수금' && h.ticker && h.ticker !== '-');
+  const options = ['<option value="">종목 선택 (선택 안 하면 전체 메모)</option>']
+    .concat(stocks.map(h => `<option value="${h.ticker}">${h.name} (${h.ticker})</option>`));
+  select.innerHTML = options.join('');
 }
 
 // =============================================
@@ -365,7 +413,9 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbw_cq_NsyTMWHUJRAmAT3e3
 async function saveNoteToSheet(note) {
   // GET 방식 사용 — no-cors 환경에서 가장 안정적
   const params = new URLSearchParams({
+    action:  'note',
     date:    note.date,
+    ticker:  note.ticker || '',
     title:   note.title,
     content: note.content,
   });
@@ -376,41 +426,52 @@ async function saveNoteToSheet(note) {
 }
 
 function setupNoteForm() {
-  const addBtn    = document.getElementById('addNoteBtn');
-  const form      = document.getElementById('noteForm');
-  const cancelBtn = document.getElementById('cancelNote');
-  const saveBtn   = document.getElementById('saveNote');
+  const addBtn      = document.getElementById('addNoteBtn');
+  const form        = document.getElementById('noteForm');
+  const cancelBtn   = document.getElementById('cancelNote');
+  const saveBtn     = document.getElementById('saveNote');
+  const tickerInput = document.getElementById('noteTicker');
+  const titleInput  = document.getElementById('noteTitle');
+  const contentInput= document.getElementById('noteContent');
 
   addBtn.addEventListener('click', () => {
+    // 노트 필터에서 특정 종목이 선택되어 있으면 그 종목으로 미리 채움
+    if (state.currentNoteFilter && state.currentNoteFilter !== '전체') {
+      tickerInput.value = state.currentNoteFilter;
+    }
     form.style.display = 'block';
-    document.getElementById('noteTitle').focus();
+    titleInput.focus();
   });
 
   cancelBtn.addEventListener('click', () => {
     form.style.display = 'none';
-    document.getElementById('noteTitle').value   = '';
-    document.getElementById('noteContent').value = '';
+    tickerInput.value  = '';
+    titleInput.value   = '';
+    contentInput.value = '';
   });
 
   saveBtn.addEventListener('click', async () => {
-    const title   = document.getElementById('noteTitle').value.trim();
-    const content = document.getElementById('noteContent').value.trim();
+    const ticker  = tickerInput.value;
+    const title   = titleInput.value.trim();
+    const content = contentInput.value.trim();
 
     if (!title) { showToast('제목을 입력해주세요', 'error'); return; }
 
     saveBtn.disabled = true;
     saveBtn.textContent = '저장 중...';
 
-    const newNote = { date: today(), title, content };
+    const newNote = { date: today(), ticker, title, content };
 
     try {
       await saveNoteToSheet(newNote);
       state.notes.unshift(newNote);
-      renderNotes(state.notes);
+      populateNoteFilter(state.notes);
+      renderNotes(state.notes, state.currentNoteFilter);
 
       form.style.display = 'none';
-      document.getElementById('noteTitle').value   = '';
-      document.getElementById('noteContent').value = '';
+      tickerInput.value  = '';
+      titleInput.value   = '';
+      contentInput.value = '';
 
       showToast('노트가 구글 시트에 저장됐어요 ✓', 'success');
     } catch (err) {
@@ -448,11 +509,15 @@ function renderAll(data) {
 
   const computed = calcHoldings(state.holdings);
 
+  populateAccountFilter(state.holdings);
+  populateNoteFilter(state.notes);
+  populateNoteTickerSelect(state.holdings);
+
   renderSummary(computed);
   renderPieChart(computed, state.currentPieType);
   renderCategoryBreakdown(computed);
-  renderHoldingsTable(computed, state.currentCategoryFilter);
-  renderNotes(state.notes);
+  renderHoldingsTable(computed, state.currentCategoryFilter, state.currentAccountFilter);
+  renderNotes(state.notes, state.currentNoteFilter);
 }
 
 // =============================================
@@ -514,171 +579,22 @@ function setupEventListeners() {
     document.querySelectorAll('#categoryFilter .toggle-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.currentCategoryFilter = btn.dataset.cat;
-    renderHoldingsTable(calcHoldings(state.holdings), state.currentCategoryFilter);
+    renderHoldingsTable(calcHoldings(state.holdings), state.currentCategoryFilter, state.currentAccountFilter);
   });
 
-  // GNB 페이지 전환
-  document.querySelectorAll('.gnb-item').forEach(item => {
-    item.addEventListener('click', e => {
-      e.preventDefault();
-      const page = item.dataset.page;
-      document.querySelectorAll('.gnb-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-      document.getElementById(`page-${page}`).style.display = '';
-    });
+  // 계좌 필터
+  document.getElementById('accountFilter').addEventListener('change', e => {
+    state.currentAccountFilter = e.target.value;
+    renderHoldingsTable(calcHoldings(state.holdings), state.currentCategoryFilter, state.currentAccountFilter);
   });
-}
 
-// =============================================
-// ETF 분석 페이지
-// =============================================
-let etfBarChart = null;
-
-function setupETFPage() {
-  const submitBtn = document.getElementById('etfSubmitBtn');
-  const tickerInput = document.getElementById('etfTickerInput');
-
-  submitBtn.addEventListener('click', () => runETFAnalysis());
-  tickerInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') runETFAnalysis();
+  // 노트 필터
+  document.getElementById('noteFilter').addEventListener('change', e => {
+    state.currentNoteFilter = e.target.value;
+    renderNotes(state.notes, state.currentNoteFilter);
   });
 }
 
-async function runETFAnalysis() {
-  const name   = document.getElementById('etfNameInput').value.trim();
-  const ticker = document.getElementById('etfTickerInput').value.trim().toUpperCase();
-
-  if (!ticker) { showToast('티커를 입력해주세요', 'error'); return; }
-
-  const submitBtn = document.getElementById('etfSubmitBtn');
-  submitBtn.disabled = true;
-  submitBtn.textContent = '분석 중...';
-
-  document.getElementById('etfResults').style.display = 'none';
-  document.getElementById('etfLoading').style.display  = 'flex';
-
-  try {
-    const holdings = await fetchETFHoldings(name || ticker, ticker);
-    renderETFResults(name || ticker, ticker, holdings);
-  } catch (err) {
-    console.error(err);
-    showToast('데이터 로드 실패: ' + err.message, 'error');
-  } finally {
-    document.getElementById('etfLoading').style.display = 'none';
-    submitBtn.disabled    = false;
-    submitBtn.textContent = '분석하기';
-  }
-}
-
-async function fetchETFHoldings(name, ticker) {
-  // GAS가 Yahoo Finance를 서버 사이드로 호출하고 결과를 JSON으로 반환
-  const params = new URLSearchParams({ action: 'etf', name, ticker });
-  const res = await fetch(`${GAS_URL}?${params}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-  const json = await res.json();
-  if (json.status === 'error') throw new Error(json.message);
-  if (!json.holdings || !json.holdings.length)
-    throw new Error('구성종목 데이터를 찾을 수 없습니다. 티커를 확인해주세요.');
-
-  return json.holdings;
-}
-
-function renderETFResults(name, ticker, holdings) {
-  // 비중 높은 순 정렬, TOP 20
-  const sorted = [...holdings].sort((a, b) => b.weight - a.weight).slice(0, 20);
-  const maxWeight = sorted[0]?.weight || 1;
-
-  // 정보 바
-  document.getElementById('etfInfoName').textContent   = name;
-  document.getElementById('etfInfoTicker').textContent = ticker;
-  document.getElementById('etfInfoCount').textContent  = `구성종목 ${holdings.length}개`;
-
-  // 가로 막대 차트
-  if (etfBarChart) etfBarChart.destroy();
-  const ctx = document.getElementById('etfBarChart').getContext('2d');
-
-  const chartLabels = sorted.map(h => h.name.length > 25 ? h.name.slice(0, 24) + '…' : h.name);
-
-  etfBarChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: chartLabels,
-      datasets: [{
-        data: sorted.map(h => h.weight),
-        backgroundColor: sorted.map((_, i) =>
-          `rgba(124,110,242,${1 - i * 0.035})`
-        ),
-        borderRadius: 4,
-        borderSkipped: false,
-      }],
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.raw.toFixed(2)}%`,
-          },
-          backgroundColor: '#16161f',
-          borderColor: 'rgba(255,255,255,0.07)',
-          borderWidth: 1,
-          titleColor: '#f0f0f5',
-          bodyColor: '#8888a0',
-          padding: 10,
-        },
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: '#44445a',
-            callback: v => v + '%',
-            font: { family: 'DM Mono', size: 11 },
-          },
-          grid: { color: 'rgba(255,255,255,0.04)' },
-        },
-        y: {
-          ticks: {
-            color: '#8888a0',
-            font: { family: 'Noto Sans KR', size: 12 },
-          },
-          grid: { display: false },
-        },
-      },
-    },
-  });
-
-  // 차트 높이를 데이터 수에 맞게 동적 설정
-  document.getElementById('etfBarChart').parentElement.style.height = `${sorted.length * 36 + 40}px`;
-
-  // 테이블
-  const tbody = document.getElementById('etfHoldingsBody');
-  tbody.innerHTML = sorted.map((h, i) => {
-    const barPct = Math.min((h.weight / maxWeight) * 100, 100).toFixed(1);
-    return `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${h.name}</td>
-        <td>${h.ticker}</td>
-        <td style="text-align:right; font-family:var(--font-mono)">${h.weight.toFixed(2)}%</td>
-        <td>
-          <div class="etf-weight-bar">
-            <div class="etf-weight-bg">
-              <div class="etf-weight-fill" style="width:${barPct}%"></div>
-            </div>
-          </div>
-        </td>
-      </tr>`;
-  }).join('');
-
-  document.getElementById('etfResults').style.display = '';
-}
-
-// =============================================
 // =============================================
 // Init
 // =============================================
@@ -686,7 +602,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLockScreen();
   setupEventListeners();
   setupNoteForm();
-  setupETFPage();
   loadData();
 });
 
