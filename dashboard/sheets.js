@@ -49,21 +49,27 @@ function parseGvizTable(table) {
 
 /**
  * Holdings 시트 데이터 로드 및 정규화
- * 기대 컬럼: account, ticker, name, category, quantity, avg_price, current_price, currency
+ * 기대 컬럼: account, ticker, name, category, quantity, avg_price, current_price,
+ *           invested_amount, eval_amount, currency
  * category 값: 국내주식 | 해외주식 | 예수금
- * 예수금 행: quantity=1, avg_price=금액, current_price=금액 으로 입력
+ * 예수금 행: invested_amount, eval_amount 모두 예수금 금액으로 입력
+ *
+ * invested_amount / eval_amount 가 시트에 입력되어 있으면 그 값을 그대로 사용합니다
+ * (입력되지 않은 경우 quantity × avg_price / quantity × current_price 로 계산).
  */
 async function loadHoldings() {
   const rows = await fetchSheet(SHEET_NAMES.holdings);
   return rows.map(r => ({
-    account:       String(r.account || '').trim() || '기타',
-    ticker:        String(r.ticker || '').trim(),
-    name:          String(r.name || '').trim(),
-    category:      String(r.category || '').trim(),
-    quantity:      parseFloat(r.quantity) || 0,
-    avg_price:     parseFloat(r.avg_price) || 0,
-    current_price: parseFloat(r.current_price) || 0,
-    currency:      String(r.currency || 'KRW').trim().toUpperCase(),
+    account:         String(r.account || '').trim() || '기타',
+    ticker:          String(r.ticker || '').trim(),
+    name:            String(r.name || '').trim(),
+    category:        String(r.category || '').trim(),
+    quantity:        parseFloat(r.quantity) || 0,
+    avg_price:       parseFloat(r.avg_price) || 0,
+    current_price:   parseFloat(r.current_price) || 0,
+    invested_amount: parseFloat(r.invested_amount) || 0,
+    eval_amount:     parseFloat(r.eval_amount) || 0,
+    currency:        String(r.currency || 'KRW').trim().toUpperCase(),
   }));
 }
 
