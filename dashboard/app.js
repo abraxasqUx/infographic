@@ -90,31 +90,37 @@ function showToast(msg, type = 'default') {
 // =============================================
 function calcHoldings(holdings) {
   return holdings.map(h => {
-    // 예수금은 수익/손실 계산 제외
-    if (h.category === '예수금') {
-      const valueKRW = h.quantity * h.current_price;
-      return { ...h, investedKRW: valueKRW, valueKRW, pnlKRW: 0, pnlPct: 0, isCash: true };
-    }
+    const isCash = h.category === '예수금';
 
-    const investedRaw = h.quantity * h.avg_price;
-    const valueRaw    = h.quantity * h.current_price;
-    const pnlRaw      = valueRaw - investedRaw;
+    // 시트의 매입금액/평가금액을 우선 사용, 없으면 수량×단가로 계산
+    const investedRaw = (h.invested_amount && h.invested_amount > 0)
+      ? h.invested_amount
+      : h.quantity * h.avg_price;
+    const valueRaw = (h.eval_amount && h.eval_amount > 0)
+      ? h.eval_amount
+      : h.quantity * h.current_price;
 
     const investedKRW = toKRW(investedRaw, h.currency);
     const valueKRW    = toKRW(valueRaw, h.currency);
-    const pnlKRW      = toKRW(pnlRaw, h.currency);
-    const pnlPct      = investedRaw > 0 ? (pnlRaw / investedRaw) * 100 : 0;
+
+    if (isCash) {
+      // 예수금은 손익 0으로 고정 (원금=평가금액)
+      return { ...h, investedKRW: valueKRW, valueKRW, pnlKRW: 0, pnlPct: 0, isCash: true };
+    }
+
+    const pnlRaw = valueRaw - investedRaw;
+    const pnlKRW = toKRW(pnlRaw, h.currency);
+    const pnlPct = investedRaw > 0 ? (pnlRaw / investedRaw) * 100 : 0;
 
     return { ...h, investedKRW, valueKRW, pnlKRW, pnlPct, isCash: false };
   });
 }
 
 function calcPortfolio(computed) {
+  // 예수금 포함하여 모든 항목 합산
   const totalValue    = computed.reduce((s, h) => s + h.valueKRW, 0);
-  // 예수금은 원금/손익 계산에서 제외
-  const stocks        = computed.filter(h => !h.isCash);
-  const totalInvested = stocks.reduce((s, h) => s + h.investedKRW, 0);
-  const totalPnl      = stocks.reduce((s, h) => s + h.pnlKRW, 0);
+  const totalInvested = computed.reduce((s, h) => s + h.investedKRW, 0);
+  const totalPnl      = computed.reduce((s, h) => s + h.pnlKRW, 0);
   const totalPnlPct   = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
   const cashTotal     = computed.filter(h => h.isCash).reduce((s, h) => s + h.valueKRW, 0);
   return { totalValue, totalInvested, totalPnl, totalPnlPct, cashTotal };
@@ -137,7 +143,11 @@ function renderSummary(computed) {
   pnlPctEl.textContent = formatPct(totalPnlPct);
   pnlPctEl.className   = 'card-sub ' + pctClass(totalPnlPct);
 
-  document.getElementById('holdingCount').textContent = computed.length + '개';
+  // 예수금 포함, 중복 종목명 제거한 unique 개수
+  const uniqueNames = new Set(
+    computed.map(h => (h.name || h.ticker || '').trim()).filter(Boolean)
+  );
+  document.getElementById('holdingCount').textContent = uniqueNames.size + '개';
 }
 
 // =============================================
