@@ -178,9 +178,15 @@ function renderPieChart(computed, type) {
     values = labels.map(k => groups[k]);
     colors = labels.map(k => PIE_COLORS[k] || '#666');
   } else {
-    labels = computed.map(h => h.ticker);
-    values = computed.map(h => h.valueKRW);
-    colors = computed.map((_, i) => TICKER_COLORS[i % TICKER_COLORS.length]);
+    // NAME 기준으로 합산 (같은 종목명이 여러 계좌에 있을 경우 합산)
+    const groups = {};
+    computed.forEach(h => {
+      const name = (h.name || h.ticker || '').trim();
+      groups[name] = (groups[name] || 0) + h.valueKRW;
+    });
+    labels = Object.keys(groups);
+    values = labels.map(k => groups[k]);
+    colors = labels.map((_, i) => TICKER_COLORS[i % TICKER_COLORS.length]);
   }
 
   if (state.pieChart) state.pieChart.destroy();
@@ -285,7 +291,12 @@ function renderCategoryBreakdown(computed) {
 // Holdings Table
 // =============================================
 function renderHoldingsTable(computed, categoryFilter = '전체', accountFilter = '전체') {
-  const totalValue = computed.reduce((s, h) => s + h.valueKRW, 0);
+  // 계좌별 평가 총액 (비중 계산 분모)
+  const accountTotals = {};
+  computed.forEach(h => {
+    accountTotals[h.account] = (accountTotals[h.account] || 0) + h.valueKRW;
+  });
+
   const filtered = computed.filter(h => {
     const catOk = categoryFilter === '전체' || h.category === categoryFilter;
     const accOk = accountFilter === '전체' || h.account === accountFilter;
@@ -294,13 +305,13 @@ function renderHoldingsTable(computed, categoryFilter = '전체', accountFilter 
 
   const tbody = document.getElementById('holdingsBody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted)">데이터 없음</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">데이터 없음</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(h => {
-    const weight = totalValue > 0 ? (h.valueKRW / totalValue) * 100 : 0;
-    const priceUnit = h.currency === 'USD' ? '$' : '₩';
+    const accountTotal = accountTotals[h.account] || 0;
+    const weight = accountTotal > 0 ? (h.valueKRW / accountTotal) * 100 : 0;
     const accountCell = `<td><span class="account-tag">${h.account || '—'}</span></td>`;
 
     if (h.isCash) {
@@ -312,11 +323,8 @@ function renderHoldingsTable(computed, categoryFilter = '전체', accountFilter 
             <span class="ticker-code">KRW</span>
           </td>
           <td><span class="cat-tag cat-tag--예수금">${h.category}</span></td>
-          <td class="neutral">—</td>
-          <td class="neutral">—</td>
-          <td class="neutral">—</td>
+          <td>${formatKRW(h.investedKRW)}원</td>
           <td>${formatKRW(h.valueKRW)}원</td>
-          <td class="neutral">—</td>
           <td class="neutral">—</td>
           <td>
             <div class="weight-bar">
@@ -337,11 +345,8 @@ function renderHoldingsTable(computed, categoryFilter = '전체', accountFilter 
           <span class="ticker-code">${h.ticker}</span>
         </td>
         <td><span class="cat-tag cat-tag--${h.category}">${h.category}</span></td>
-        <td>${h.quantity.toLocaleString()}</td>
-        <td>${priceUnit}${h.avg_price.toLocaleString()}</td>
-        <td>${priceUnit}${h.current_price.toLocaleString()}</td>
+        <td>${formatKRW(h.investedKRW)}원</td>
         <td>${formatKRW(h.valueKRW)}원</td>
-        <td class="${pctClass(h.pnlKRW)}">${h.pnlKRW >= 0 ? '+' : ''}${formatKRW(h.pnlKRW)}원</td>
         <td class="${pctClass(h.pnlPct)}">${formatPct(h.pnlPct)}</td>
         <td>
           <div class="weight-bar">
