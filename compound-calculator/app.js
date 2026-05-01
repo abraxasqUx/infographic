@@ -36,32 +36,25 @@ function getInputs() {
   };
 }
 
-// 원화 입력 필드 실시간 콤마 포맷 (커서 위치 보정 포함)
+// 원화 입력 필드 실시간 콤마 포맷
 function setupCommaInputs() {
   ['initialAmount', 'monthlyContrib', 'targetAmount'].forEach(function (id) {
     var el = document.getElementById(id);
+    if (!el) return;
     el.addEventListener('input', function () {
-      var cursorPos = this.selectionStart;
-      var oldVal    = this.value;
+      var pos    = this.selectionStart;
+      var oldLen = this.value.length;
+      var raw    = this.value.replace(/[^0-9]/g, '');
 
-      // 커서 앞의 숫자(콤마 제외) 개수를 기억
-      var digitsBeforeCursor = oldVal.slice(0, cursorPos).replace(/,/g, '').length;
+      // 정규식으로 3자리마다 콤마 삽입 (toLocaleString 환경 의존성 제거)
+      this.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
 
-      var raw = oldVal.replace(/[^0-9]/g, '');
-      if (!raw) { this.value = ''; return; }
-
-      var formatted = Number(raw).toLocaleString('ko-KR');
-      this.value = formatted;
-
-      // 커서를 같은 자릿수 위치로 복원
-      var digits = 0;
-      var newPos = formatted.length;
-      for (var i = 0; i < formatted.length; i++) {
-        if (formatted[i] !== ',') digits++;
-        if (digits === digitsBeforeCursor) { newPos = i + 1; break; }
-      }
-      if (digitsBeforeCursor === 0) newPos = 0;
+      // 콤마 추가/제거에 따른 커서 위치 보정
+      var newPos = Math.max(0, pos + this.value.length - oldLen);
       this.setSelectionRange(newPos, newPos);
+
+      // 포매터에서 직접 호출 (이벤트 순서 의존 제거)
+      calculate();
     });
   });
 }
@@ -281,9 +274,13 @@ document.getElementById('scenarioTabs').addEventListener('click', e => {
   if (scenarioData.length) renderTable(scenarioData[currentScenario]);
 });
 
-// 콤마 포매터를 먼저 등록 → calculate 보다 앞서 실행되어 정제된 값을 전달
+// 콤마 포매터를 먼저 등록 (포매터 내부에서 calculate() 직접 호출)
 setupCommaInputs();
-document.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+
+// 콤마 필드(initialAmount, monthlyContrib, targetAmount)는 위에서 처리했으므로 제외
+['years', 'annualReturn', 'taxRate', 'inflationRate'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', calculate);
+});
 
 document.addEventListener('themechange', calculate);
 
