@@ -763,6 +763,82 @@ body::before {
 .toast.error   { border-color: var(--red); }
 
 /* =============================================
+   Light Mode Variables
+   ============================================= */
+[data-theme="light"] {
+  --bg-base:        #f5f5f8;
+  --bg-panel:       #ffffff;
+  --bg-panel-2:     #f0f0f5;
+  --bg-hover:       #ebebf2;
+  --border:         rgba(0,0,0,0.09);
+  --border-light:   rgba(0,0,0,0.05);
+  --text-primary:   #0e0e1a;
+  --text-secondary: #55556a;
+  --text-muted:     #9898b0;
+}
+
+.theme-transitioning,
+.theme-transitioning * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease !important;
+}
+
+[data-theme="light"] body::before {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(124,110,242,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(79,163,224,0.05) 0%, transparent 50%);
+}
+
+[data-theme="light"] .header {
+  background: rgba(248,248,252,0.92);
+}
+
+[data-theme="light"] .lock-screen {
+  background: var(--bg-base);
+}
+
+[data-theme="light"] .card--primary {
+  background: linear-gradient(135deg, rgba(124,110,242,0.06), var(--bg-panel));
+}
+
+[data-theme="light"] .toggle-group {
+  background: var(--bg-hover);
+}
+
+[data-theme="light"] .filter-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2355556a' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+}
+
+[data-theme="light"] .note-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2355556a' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+}
+
+/* =============================================
+   Theme Toggle Button
+   ============================================= */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+[data-theme="light"] .theme-toggle .icon-sun  { display: none; }
+
+/* =============================================
    Animations
    ============================================= */
 @keyframes fadeUp {

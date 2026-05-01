@@ -2,6 +2,23 @@ let chartInstance = null;
 let scenarioData = [];
 let currentScenario = 1; // 0=비관 1=기준 2=낙관
 
+function isLight() {
+  return document.documentElement.getAttribute('data-theme') === 'light';
+}
+
+function chartColors() {
+  const light = isLight();
+  return {
+    tick:         light ? '#9898b0' : '#44445a',
+    tickAlt:      light ? '#55556a' : '#8888a0',
+    grid:         light ? 'rgba(0,0,0,0.06)'         : 'rgba(255,255,255,0.04)',
+    tooltipBg:    light ? '#ffffff'                  : '#111118',
+    tooltipBorder:light ? 'rgba(0,0,0,0.09)'         : 'rgba(255,255,255,0.07)',
+    tooltipTitle: light ? '#0e0e1a'                  : '#f0f0f5',
+    tooltipBody:  light ? '#55556a'                  : '#8888a0',
+  };
+}
+
 function getInputs() {
   return {
     initial:   parseFloat(document.getElementById('initialAmount').value)  || 0,
@@ -127,6 +144,8 @@ function renderChart(inp, scenarios) {
 
   if (chartInstance) chartInstance.destroy();
 
+  const cc = chartColors();
+
   chartInstance = new Chart(document.getElementById('growthChart').getContext('2d'), {
     type: 'line',
     data: { labels, datasets },
@@ -136,14 +155,14 @@ function renderChart(inp, scenarios) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          labels: { color: '#8888a0', font: { family: 'DM Mono', size: 11 } },
+          labels: { color: cc.tickAlt, font: { family: 'DM Mono', size: 11 } },
         },
         tooltip: {
-          backgroundColor: '#111118',
-          borderColor: 'rgba(255,255,255,0.08)',
+          backgroundColor: cc.tooltipBg,
+          borderColor: cc.tooltipBorder,
           borderWidth: 1,
-          titleColor: '#f0f0f5',
-          bodyColor: '#8888a0',
+          titleColor: cc.tooltipTitle,
+          bodyColor: cc.tooltipBody,
           padding: 12,
           callbacks: {
             label: ctx => ` ${ctx.dataset.label}: ${Math.round(ctx.raw).toLocaleString()}원`,
@@ -152,12 +171,12 @@ function renderChart(inp, scenarios) {
       },
       scales: {
         x: {
-          ticks: { color: '#44445a', font: { family: 'DM Mono', size: 10 } },
-          grid:  { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: cc.tick, font: { family: 'DM Mono', size: 10 } },
+          grid:  { color: cc.grid },
         },
         y: {
           ticks: {
-            color: '#44445a',
+            color: cc.tick,
             font: { family: 'DM Mono', size: 10 },
             callback: v => {
               if (v >= 1e8) return (v / 1e8).toFixed(0) + '억';
@@ -165,7 +184,7 @@ function renderChart(inp, scenarios) {
               return v;
             },
           },
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: cc.grid },
         },
       },
     },
@@ -228,5 +247,7 @@ document.getElementById('scenarioTabs').addEventListener('click', e => {
 });
 
 document.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+
+document.addEventListener('themechange', calculate);
 
 window.addEventListener('DOMContentLoaded', calculate);

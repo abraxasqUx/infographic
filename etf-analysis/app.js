@@ -1,6 +1,24 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw_cq_NsyTMWHUJRAmAT3e3dqhTBpkSUxTvsiNWmYbfxWgvRqvOiwP2DvomgOf8EfOn6Q/exec';
 
 let etfBarChart = null;
+let lastETFRender = null;
+
+function isLight() {
+  return document.documentElement.getAttribute('data-theme') === 'light';
+}
+
+function chartColors() {
+  const light = isLight();
+  return {
+    tickX:         light ? '#9898b0' : '#44445a',
+    tickY:         light ? '#55556a' : '#8888a0',
+    grid:          light ? 'rgba(0,0,0,0.06)'         : 'rgba(255,255,255,0.04)',
+    tooltipBg:     light ? '#ffffff'                  : '#16161f',
+    tooltipBorder: light ? 'rgba(0,0,0,0.09)'         : 'rgba(255,255,255,0.07)',
+    tooltipTitle:  light ? '#0e0e1a'                  : '#f0f0f5',
+    tooltipBody:   light ? '#55556a'                  : '#8888a0',
+  };
+}
 
 function showToast(msg, type = 'default') {
   const el = document.getElementById('toast');
@@ -58,6 +76,7 @@ async function fetchETFHoldings(name, ticker) {
 }
 
 function renderETFResults(name, ticker, holdings) {
+  lastETFRender = { name, ticker, holdings };
   const sorted = [...holdings].sort((a, b) => b.weight - a.weight).slice(0, 20);
   const maxWeight = sorted[0]?.weight || 1;
 
@@ -89,26 +108,26 @@ function renderETFResults(name, ticker, holdings) {
         legend: { display: false },
         tooltip: {
           callbacks: { label: ctx => ` ${ctx.raw.toFixed(2)}%` },
-          backgroundColor: '#16161f',
-          borderColor: 'rgba(255,255,255,0.07)',
+          backgroundColor: chartColors().tooltipBg,
+          borderColor: chartColors().tooltipBorder,
           borderWidth: 1,
-          titleColor: '#f0f0f5',
-          bodyColor: '#8888a0',
+          titleColor: chartColors().tooltipTitle,
+          bodyColor: chartColors().tooltipBody,
           padding: 10,
         },
       },
       scales: {
         x: {
           ticks: {
-            color: '#44445a',
+            color: chartColors().tickX,
             callback: v => v + '%',
             font: { family: 'DM Mono', size: 11 },
           },
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: chartColors().grid },
         },
         y: {
           ticks: {
-            color: '#8888a0',
+            color: chartColors().tickY,
             font: { family: 'Noto Sans KR', size: 12 },
           },
           grid: { display: false },
@@ -143,4 +162,10 @@ function renderETFResults(name, ticker, holdings) {
 
 document.addEventListener('DOMContentLoaded', () => {
   setupETFPage();
+});
+
+document.addEventListener('themechange', () => {
+  if (lastETFRender) {
+    renderETFResults(lastETFRender.name, lastETFRender.ticker, lastETFRender.holdings);
+  }
 });
