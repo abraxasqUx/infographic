@@ -24,6 +24,12 @@ function parseNum(id) {
   return parseFloat(document.getElementById(id).value.replace(/,/g, '')) || 0;
 }
 
+// 정규식 기반 3자리 콤마 포맷 (환경 무관)
+function formatComma(str) {
+  var raw = (str == null ? '' : String(str)).replace(/[^0-9]/g, '');
+  return raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+}
+
 function getInputs() {
   return {
     initial:   parseNum('initialAmount'),
@@ -36,25 +42,41 @@ function getInputs() {
   };
 }
 
-// 원화 입력 필드 실시간 콤마 포맷
+// 원화 입력 필드 실시간 콤마 포맷 (다중 이벤트 + 초기값 강제 포맷)
 function setupCommaInputs() {
   ['initialAmount', 'monthlyContrib', 'targetAmount'].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener('input', function () {
+
+    // 1. 초기값 강제 포맷팅
+    el.value = formatComma(el.value);
+
+    // 2. 입력 시 실시간 포맷
+    var handler = function () {
       var pos    = this.selectionStart;
       var oldLen = this.value.length;
-      var raw    = this.value.replace(/[^0-9]/g, '');
+      var formatted = formatComma(this.value);
 
-      // 정규식으로 3자리마다 콤마 삽입 (toLocaleString 환경 의존성 제거)
-      this.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
-
-      // 콤마 추가/제거에 따른 커서 위치 보정
-      var newPos = Math.max(0, pos + this.value.length - oldLen);
-      this.setSelectionRange(newPos, newPos);
-
-      // 포매터에서 직접 호출 (이벤트 순서 의존 제거)
+      if (this.value !== formatted) {
+        this.value = formatted;
+        var newPos = Math.max(0, pos + this.value.length - oldLen);
+        try { this.setSelectionRange(newPos, newPos); } catch (e) {}
+      }
       calculate();
+    };
+
+    // input, change, keyup, paste 모두 등록 (브라우저별 차이 대응)
+    el.addEventListener('input',  handler);
+    el.addEventListener('change', handler);
+    el.addEventListener('keyup',  handler);
+    el.addEventListener('paste',  function () {
+      var self = this;
+      setTimeout(function () { handler.call(self); }, 0);
+    });
+
+    // 3. blur 시 최종 보정
+    el.addEventListener('blur', function () {
+      this.value = formatComma(this.value);
     });
   });
 }
@@ -265,23 +287,38 @@ function calculate() {
 
 // ── 이벤트 ────────────────────────────────────────
 
-document.getElementById('scenarioTabs').addEventListener('click', e => {
-  const btn = e.target.closest('.tab-btn');
-  if (!btn) return;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentScenario = parseInt(btn.dataset.idx);
-  if (scenarioData.length) renderTable(scenarioData[currentScenario]);
-});
+function initApp() {
+  // 시나리오 탭
+  var tabs = document.getElementById('scenarioTabs');
+  if (tabs) {
+    tabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentScenario = parseInt(btn.dataset.idx);
+      if (scenarioData.length) renderTable(scenarioData[currentScenario]);
+    });
+  }
 
-// 콤마 포매터를 먼저 등록 (포매터 내부에서 calculate() 직접 호출)
-setupCommaInputs();
+  // 콤마 포매터 설정 (콤마 필드는 포매터 내부에서 calculate 호출)
+  setupCommaInputs();
 
-// 콤마 필드(initialAmount, monthlyContrib, targetAmount)는 위에서 처리했으므로 제외
-['years', 'annualReturn', 'taxRate', 'inflationRate'].forEach(function (id) {
-  document.getElementById(id).addEventListener('input', calculate);
-});
+  // 나머지 입력 필드만 calculate 등록
+  ['years', 'annualReturn', 'taxRate', 'inflationRate'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', calculate);
+  });
 
-document.addEventListener('themechange', calculate);
+  document.addEventListener('themechange', calculate);
 
-window.addEventListener('DOMContentLoaded', calculate);
+  // 초기 계산
+  calculate();
+}
+
+// DOM 준비 시점에 따라 즉시 또는 DOMContentLoaded 대기
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
