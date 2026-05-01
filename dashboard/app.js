@@ -2,6 +2,21 @@
  * app.js — 포트폴리오 대시보드 메인 로직
  */
 
+function isLight() {
+  return document.documentElement.getAttribute('data-theme') === 'light';
+}
+
+function chartColors() {
+  const light = isLight();
+  return {
+    tooltipBg:     light ? '#ffffff'                 : '#16161f',
+    tooltipBorder: light ? 'rgba(0,0,0,0.09)'        : 'rgba(255,255,255,0.07)',
+    tooltipTitle:  light ? '#0e0e1a'                 : '#f0f0f5',
+    tooltipBody:   light ? '#55556a'                 : '#8888a0',
+    pieBorder:     light ? '#ffffff'                 : '#111118',
+  };
+}
+
 // =============================================
 // 더미 데이터 (시트 연동 전 테스트용)
 // SHEET_ID 설정 후 자동으로 실제 데이터로 전환됩니다.
@@ -199,7 +214,7 @@ function renderPieChart(computed, type) {
       datasets: [{
         data: values,
         backgroundColor: colors,
-        borderColor: '#111118',
+        borderColor: chartColors().pieBorder,
         borderWidth: 3,
         hoverOffset: 6,
       }],
@@ -215,11 +230,11 @@ function renderPieChart(computed, type) {
               return ` ${formatKRW(ctx.raw)}원 (${pct}%)`;
             },
           },
-          backgroundColor: '#16161f',
-          borderColor: 'rgba(255,255,255,0.07)',
+          backgroundColor: chartColors().tooltipBg,
+          borderColor: chartColors().tooltipBorder,
           borderWidth: 1,
-          titleColor: '#f0f0f5',
-          bodyColor: '#8888a0',
+          titleColor: chartColors().tooltipTitle,
+          bodyColor: chartColors().tooltipBody,
           padding: 10,
         },
       },
@@ -618,6 +633,12 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   setupNoteForm();
   loadData();
+});
+
+document.addEventListener('themechange', () => {
+  if (state.holdings.length) {
+    renderPieChart(calcHoldings(state.holdings), state.currentPieType);
+  }
 });
 
 // =============================================
