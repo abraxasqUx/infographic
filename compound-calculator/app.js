@@ -19,16 +19,51 @@ function chartColors() {
   };
 }
 
+// 콤마 포함 문자열 → 숫자
+function parseNum(id) {
+  return parseFloat(document.getElementById(id).value.replace(/,/g, '')) || 0;
+}
+
 function getInputs() {
   return {
-    initial:   parseFloat(document.getElementById('initialAmount').value)  || 0,
-    monthly:   parseFloat(document.getElementById('monthlyContrib').value)  || 0,
+    initial:   parseNum('initialAmount'),
+    monthly:   parseNum('monthlyContrib'),
     years:     Math.max(1, parseInt(document.getElementById('years').value) || 20),
     rate:      parseFloat(document.getElementById('annualReturn').value)    || 0,
     taxRate:   parseFloat(document.getElementById('taxRate').value)         || 0,
     inflation: parseFloat(document.getElementById('inflationRate').value)   || 0,
-    target:    parseFloat(document.getElementById('targetAmount').value)    || 0,
+    target:    parseNum('targetAmount'),
   };
+}
+
+// 원화 입력 필드 실시간 콤마 포맷 (커서 위치 보정 포함)
+function setupCommaInputs() {
+  ['initialAmount', 'monthlyContrib', 'targetAmount'].forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', function () {
+      var cursorPos = this.selectionStart;
+      var oldVal    = this.value;
+
+      // 커서 앞의 숫자(콤마 제외) 개수를 기억
+      var digitsBeforeCursor = oldVal.slice(0, cursorPos).replace(/,/g, '').length;
+
+      var raw = oldVal.replace(/[^0-9]/g, '');
+      if (!raw) { this.value = ''; return; }
+
+      var formatted = Number(raw).toLocaleString('ko-KR');
+      this.value = formatted;
+
+      // 커서를 같은 자릿수 위치로 복원
+      var digits = 0;
+      var newPos = formatted.length;
+      for (var i = 0; i < formatted.length; i++) {
+        if (formatted[i] !== ',') digits++;
+        if (digits === digitsBeforeCursor) { newPos = i + 1; break; }
+      }
+      if (digitsBeforeCursor === 0) newPos = 0;
+      this.setSelectionRange(newPos, newPos);
+    });
+  });
 }
 
 // 단일 시나리오 연말 데이터 배열 반환
@@ -246,6 +281,8 @@ document.getElementById('scenarioTabs').addEventListener('click', e => {
   if (scenarioData.length) renderTable(scenarioData[currentScenario]);
 });
 
+// 콤마 포매터를 먼저 등록 → calculate 보다 앞서 실행되어 정제된 값을 전달
+setupCommaInputs();
 document.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
 
 document.addEventListener('themechange', calculate);
