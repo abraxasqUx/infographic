@@ -2,6 +2,21 @@ let chartInstance = null;
 let scenarioData = [];
 let currentScenario = 1; // 0=비관 1=기준 2=낙관
 
+// KRW 입력 인라인 oninput 핸들러 (HTML에서 직접 호출)
+function onKRWInput(el, hintId, unitValue, unitLabel) {
+  var raw = el.value.replace(/[^0-9]/g, '');
+  el.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+  var hint = document.getElementById(hintId);
+  if (hint) {
+    if (raw) {
+      hint.textContent = (parseInt(raw, 10) / unitValue).toFixed(1) + unitLabel;
+    } else {
+      hint.textContent = '';
+    }
+  }
+  if (typeof calculate === 'function') calculate();
+}
+
 function isLight() {
   return document.documentElement.getAttribute('data-theme') === 'light';
 }
@@ -19,16 +34,46 @@ function chartColors() {
   };
 }
 
+// 콤마 포함 문자열 → 숫자
+function parseNum(id) {
+  return parseFloat(document.getElementById(id).value.replace(/,/g, '')) || 0;
+}
+
+// 정규식 기반 3자리 콤마 포맷 (환경 무관)
+function formatComma(str) {
+  var raw = (str == null ? '' : String(str)).replace(/[^0-9]/g, '');
+  return raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+}
+
 function getInputs() {
   return {
-    initial:   parseFloat(document.getElementById('initialAmount').value)  || 0,
-    monthly:   parseFloat(document.getElementById('monthlyContrib').value)  || 0,
+    initial:   parseNum('initialAmount'),
+    monthly:   parseNum('monthlyContrib'),
     years:     Math.max(1, parseInt(document.getElementById('years').value) || 20),
     rate:      parseFloat(document.getElementById('annualReturn').value)    || 0,
     taxRate:   parseFloat(document.getElementById('taxRate').value)         || 0,
     inflation: parseFloat(document.getElementById('inflationRate').value)   || 0,
-    target:    parseFloat(document.getElementById('targetAmount').value)    || 0,
+    target:    parseNum('targetAmount'),
   };
+}
+
+// 초기 로드 시 KRW 입력 필드 포맷 + 단위 힌트 표시
+function initKRWInputs() {
+  var fields = [
+    { id: 'initialAmount',  hintId: 'initialAmountHint',  unit: 1e8, label: '억원' },
+    { id: 'monthlyContrib', hintId: 'monthlyContribHint', unit: 1e6, label: '백만원' },
+    { id: 'targetAmount',   hintId: 'targetAmountHint',   unit: 1e8, label: '억원' },
+  ];
+  fields.forEach(function (f) {
+    var el = document.getElementById(f.id);
+    if (!el) return;
+    var raw = el.value.replace(/[^0-9]/g, '');
+    el.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+    var hint = document.getElementById(f.hintId);
+    if (hint && raw) {
+      hint.textContent = (parseInt(raw, 10) / f.unit).toFixed(1) + f.label;
+    }
+  });
 }
 
 // 단일 시나리오 연말 데이터 배열 반환
@@ -237,17 +282,38 @@ function calculate() {
 
 // ── 이벤트 ────────────────────────────────────────
 
-document.getElementById('scenarioTabs').addEventListener('click', e => {
-  const btn = e.target.closest('.tab-btn');
-  if (!btn) return;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentScenario = parseInt(btn.dataset.idx);
-  if (scenarioData.length) renderTable(scenarioData[currentScenario]);
-});
+function initApp() {
+  // 시나리오 탭
+  var tabs = document.getElementById('scenarioTabs');
+  if (tabs) {
+    tabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentScenario = parseInt(btn.dataset.idx);
+      if (scenarioData.length) renderTable(scenarioData[currentScenario]);
+    });
+  }
 
-document.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+  // 초기 KRW 포맷 + 단위 힌트 (이후 실시간 갱신은 oninput 인라인 핸들러가 담당)
+  initKRWInputs();
 
-document.addEventListener('themechange', calculate);
+  // 나머지 입력 필드만 calculate 등록
+  ['years', 'annualReturn', 'taxRate', 'inflationRate'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', calculate);
+  });
 
-window.addEventListener('DOMContentLoaded', calculate);
+  document.addEventListener('themechange', calculate);
+
+  // 초기 계산
+  calculate();
+}
+
+// DOM 준비 시점에 따라 즉시 또는 DOMContentLoaded 대기
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
