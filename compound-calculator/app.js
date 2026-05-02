@@ -2,6 +2,21 @@ let chartInstance = null;
 let scenarioData = [];
 let currentScenario = 1; // 0=비관 1=기준 2=낙관
 
+// KRW 입력 인라인 oninput 핸들러 (HTML에서 직접 호출)
+function onKRWInput(el, hintId, unitValue, unitLabel) {
+  var raw = el.value.replace(/[^0-9]/g, '');
+  el.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+  var hint = document.getElementById(hintId);
+  if (hint) {
+    if (raw) {
+      hint.textContent = (parseInt(raw, 10) / unitValue).toFixed(1) + unitLabel;
+    } else {
+      hint.textContent = '';
+    }
+  }
+  if (typeof calculate === 'function') calculate();
+}
+
 function isLight() {
   return document.documentElement.getAttribute('data-theme') === 'light';
 }
@@ -42,42 +57,22 @@ function getInputs() {
   };
 }
 
-// 원화 입력 필드 실시간 콤마 포맷 (다중 이벤트 + 초기값 강제 포맷)
-function setupCommaInputs() {
-  ['initialAmount', 'monthlyContrib', 'targetAmount'].forEach(function (id) {
-    var el = document.getElementById(id);
+// 초기 로드 시 KRW 입력 필드 포맷 + 단위 힌트 표시
+function initKRWInputs() {
+  var fields = [
+    { id: 'initialAmount',  hintId: 'initialAmountHint',  unit: 1e8, label: '억원' },
+    { id: 'monthlyContrib', hintId: 'monthlyContribHint', unit: 1e6, label: '백만원' },
+    { id: 'targetAmount',   hintId: 'targetAmountHint',   unit: 1e8, label: '억원' },
+  ];
+  fields.forEach(function (f) {
+    var el = document.getElementById(f.id);
     if (!el) return;
-
-    // 1. 초기값 강제 포맷팅
-    el.value = formatComma(el.value);
-
-    // 2. 입력 시 실시간 포맷
-    var handler = function () {
-      var pos    = this.selectionStart;
-      var oldLen = this.value.length;
-      var formatted = formatComma(this.value);
-
-      if (this.value !== formatted) {
-        this.value = formatted;
-        var newPos = Math.max(0, pos + this.value.length - oldLen);
-        try { this.setSelectionRange(newPos, newPos); } catch (e) {}
-      }
-      calculate();
-    };
-
-    // input, change, keyup, paste 모두 등록 (브라우저별 차이 대응)
-    el.addEventListener('input',  handler);
-    el.addEventListener('change', handler);
-    el.addEventListener('keyup',  handler);
-    el.addEventListener('paste',  function () {
-      var self = this;
-      setTimeout(function () { handler.call(self); }, 0);
-    });
-
-    // 3. blur 시 최종 보정
-    el.addEventListener('blur', function () {
-      this.value = formatComma(this.value);
-    });
+    var raw = el.value.replace(/[^0-9]/g, '');
+    el.value = raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+    var hint = document.getElementById(f.hintId);
+    if (hint && raw) {
+      hint.textContent = (parseInt(raw, 10) / f.unit).toFixed(1) + f.label;
+    }
   });
 }
 
@@ -301,8 +296,8 @@ function initApp() {
     });
   }
 
-  // 콤마 포매터 설정 (콤마 필드는 포매터 내부에서 calculate 호출)
-  setupCommaInputs();
+  // 초기 KRW 포맷 + 단위 힌트 (이후 실시간 갱신은 oninput 인라인 핸들러가 담당)
+  initKRWInputs();
 
   // 나머지 입력 필드만 calculate 등록
   ['years', 'annualReturn', 'taxRate', 'inflationRate'].forEach(function (id) {
